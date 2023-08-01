@@ -8,18 +8,17 @@
 #include <vulkan/vulkan.h>
 
 namespace gimi::vulkan {
-	VkAllocationCallbacks *g_Allocator = nullptr;
-	VkInstance g_Instance = VK_NULL_HANDLE;
-	VkPhysicalDevice g_PhysicalDevice = VK_NULL_HANDLE;
-	VkDevice g_Device = VK_NULL_HANDLE;
-	uint32_t g_QueueFamily = (uint32_t) -1;
-	VkQueue g_Queue = VK_NULL_HANDLE;
-	VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
-	VkPipelineCache g_PipelineCache = VK_NULL_HANDLE;
-	VkDescriptorPool g_DescriptorPool = VK_NULL_HANDLE;
+	extern VkAllocationCallbacks *g_Allocator;
+	extern VkInstance g_Instance;
+	extern VkPhysicalDevice g_PhysicalDevice;
+	extern VkDevice g_Device;
+	extern uint32_t g_QueueFamily;
+	extern VkQueue g_Queue;
+	extern VkPipelineCache g_PipelineCache;
+	extern VkDescriptorPool g_DescriptorPool;
 
-	ImGui_ImplVulkanH_Window g_MainWindowData;
-	uint32_t g_MinImageCount = 2;
+	extern ImGui_ImplVulkanH_Window g_MainWindowData;
+	extern uint32_t g_MinImageCount;
 
 	void NewFrame();
 
@@ -31,15 +30,12 @@ namespace gimi::vulkan {
 
 	VkPhysicalDevice SetupVulkan_SelectPhysicalDevice();
 
-	void SetupVulkan(ImVector<const char *> &instance_extensions);
+	SDL_Window *SetupVulkan();
 
-	void SetupVulkanWindow(ImGui_ImplVulkanH_Window *wd, const VkSurfaceKHR &surface, const int &width, const int &height);
+	void
+	SetupVulkanWindow(ImGui_ImplVulkanH_Window *wd, const VkSurfaceKHR &surface, const int &width, const int &height);
 
 	void CleanupVulkan();
 
 	void CleanupVulkanWindow();
-
-	void shutdown(VkResult &err, SDL_Window *window);
-
-	void setup_render(ImGui_ImplVulkanH_Window *wd, SDL_Window *window);
 }

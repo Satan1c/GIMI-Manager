@@ -1,6 +1,18 @@
 #include "headers/vulkan.h"
 
 namespace gimi::vulkan {
+	VkAllocationCallbacks *g_Allocator = nullptr;
+	VkInstance g_Instance = VK_NULL_HANDLE;
+	VkPhysicalDevice g_PhysicalDevice = VK_NULL_HANDLE;
+	VkDevice g_Device = VK_NULL_HANDLE;
+	uint32_t g_QueueFamily = (uint32_t) -1;
+	VkQueue g_Queue = VK_NULL_HANDLE;
+	VkPipelineCache g_PipelineCache = VK_NULL_HANDLE;
+	VkDescriptorPool g_DescriptorPool = VK_NULL_HANDLE;
+
+	ImGui_ImplVulkanH_Window g_MainWindowData;
+	uint32_t g_MinImageCount = 2;
+
 	void NewFrame() {
 		// Start the Dear ImGui frame
 		ImGui_ImplVulkan_NewFrame();
@@ -54,111 +66,139 @@ namespace gimi::vulkan {
 		return VK_NULL_HANDLE;
 	}
 
-	void SetupVulkan(ImVector<const char *> &instance_extensions) {
-		VkResult err;
+	void CreateVulkanInstance(ImVector<const char *> &instance_extensions, VkResult &err) {
+		VkInstanceCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
-		// Create Vulkan Instance
-		{
-			VkInstanceCreateInfo create_info = {};
-			create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		// Enumerate available extensions
+		uint32_t properties_count;
+		ImVector<VkExtensionProperties> properties;
+		vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, nullptr);
+		properties.resize(properties_count);
+		err = vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, properties.Data);
+		check_vk_result(err);
 
-			// Enumerate available extensions
-			uint32_t properties_count;
-			ImVector<VkExtensionProperties> properties;
-			vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, nullptr);
-			properties.resize(properties_count);
-			err = vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, properties.Data);
-			check_vk_result(err);
-
-			// Enable required extensions
-			if (IsExtensionAvailable(properties, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
-				instance_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+		// Enable required extensions
+		if (IsExtensionAvailable(properties, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
+			instance_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
-			if (IsExtensionAvailable(properties, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
-				instance_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-				create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-			}
+		if (IsExtensionAvailable(properties, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+			instance_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+			create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+		}
 #endif
 
-			// Create Vulkan Instance
-			create_info.enabledExtensionCount = (uint32_t) instance_extensions.Size;
-			create_info.ppEnabledExtensionNames = instance_extensions.Data;
-			err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
-			check_vk_result(err);
-		}
+		// Create Vulkan Instance
+		create_info.enabledExtensionCount = (uint32_t) instance_extensions.Size;
+		create_info.ppEnabledExtensionNames = instance_extensions.Data;
+		err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
+		check_vk_result(err);
+	}
+
+	void CreateDescriptorPool(VkResult &err) {
+		VkDescriptorPoolSize pool_sizes[] =
+				{
+						{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
+				};
+		VkDescriptorPoolCreateInfo pool_info = {};
+		pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		pool_info.maxSets = 1;
+		pool_info.poolSizeCount = (uint32_t) IM_ARRAYSIZE(pool_sizes);
+		pool_info.pPoolSizes = pool_sizes;
+		err = vkCreateDescriptorPool(g_Device, &pool_info, g_Allocator, &g_DescriptorPool);
+		check_vk_result(err);
+	}
+
+	VkResult CreateLogicalDevice(VkResult &err) {
+		ImVector<const char *> device_extensions;
+		device_extensions.push_back("VK_KHR_swapchain");
+
+		// Enumerate physical device extension
+		uint32_t properties_count;
+		ImVector<VkExtensionProperties> properties;
+		vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &properties_count, nullptr);
+		properties.resize(properties_count);
+		vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &properties_count, properties.Data);
+#ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+		if (IsExtensionAvailable(properties, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
+				device_extensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+#endif
+
+		const float queue_priority[] = {1.0f};
+		VkDeviceQueueCreateInfo queue_info[1] = {};
+
+		auto *first = &queue_info[0];
+		first->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		first->queueFamilyIndex = g_QueueFamily;
+		first->queueCount = 1;
+		first->pQueuePriorities = queue_priority;
+
+		VkDeviceCreateInfo create_info = {};
+
+		auto* p_create_info = &create_info;
+		p_create_info->sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		p_create_info->queueCreateInfoCount = sizeof(queue_info) / sizeof(queue_info[0]);
+		p_create_info->pQueueCreateInfos = queue_info;
+		p_create_info->enabledExtensionCount = (uint32_t) device_extensions.Size;
+		p_create_info->ppEnabledExtensionNames = device_extensions.Data;
+
+		err = vkCreateDevice(g_PhysicalDevice, p_create_info, g_Allocator, &g_Device);
+		check_vk_result(err);
+		vkGetDeviceQueue(g_Device, g_QueueFamily, 0, &g_Queue);
+
+		return err;
+	}
+
+	void SelectGraphicsQueueFamily() {
+		uint32_t count;
+		vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, nullptr);
+		VkQueueFamilyProperties *queues = (VkQueueFamilyProperties *) malloc(
+				sizeof(VkQueueFamilyProperties) * count);
+		vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, queues);
+		for (uint32_t i = 0; i < count; i++)
+			if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+				g_QueueFamily = i;
+				break;
+			}
+		free(queues);
+		IM_ASSERT(g_QueueFamily != (uint32_t) -1);
+	}
+
+	SDL_Window *SetupVulkan() {
+		VkResult err;
+		auto window_flags = (SDL_WindowFlags) (SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+		SDL_Window *window = SDL_CreateWindow("Dear ImGui SDL2+Vulkan example", SDL_WINDOWPOS_CENTERED,
+											  SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+
+		ImVector<const char *> extensions;
+		uint32_t extensions_count = 0;
+		SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, nullptr);
+		extensions.resize(extensions_count);
+		SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, extensions.Data);
+
+		// Create Vulkan Instance
+		CreateVulkanInstance(extensions, err);
 
 		// Select Physical Device (GPU)
 		g_PhysicalDevice = SetupVulkan_SelectPhysicalDevice();
 
 		// Select graphics queue family
-		{
-			uint32_t count;
-			vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, nullptr);
-			VkQueueFamilyProperties *queues = (VkQueueFamilyProperties *) malloc(
-					sizeof(VkQueueFamilyProperties) * count);
-			vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, queues);
-			for (uint32_t i = 0; i < count; i++)
-				if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-					g_QueueFamily = i;
-					break;
-				}
-			free(queues);
-			IM_ASSERT(g_QueueFamily != (uint32_t) -1);
-		}
+		SelectGraphicsQueueFamily();
 
 		// Create Logical Device (with 1 queue)
-		{
-			ImVector<const char *> device_extensions;
-			device_extensions.push_back("VK_KHR_swapchain");
-
-			// Enumerate physical device extension
-			uint32_t properties_count;
-			ImVector<VkExtensionProperties> properties;
-			vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &properties_count, nullptr);
-			properties.resize(properties_count);
-			vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &properties_count, properties.Data);
-#ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-			if (IsExtensionAvailable(properties, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
-			device_extensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
-#endif
-
-			const float queue_priority[] = {1.0f};
-			VkDeviceQueueCreateInfo queue_info[1] = {};
-			queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queue_info[0].queueFamilyIndex = g_QueueFamily;
-			queue_info[0].queueCount = 1;
-			queue_info[0].pQueuePriorities = queue_priority;
-			VkDeviceCreateInfo create_info = {};
-			create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-			create_info.queueCreateInfoCount = sizeof(queue_info) / sizeof(queue_info[0]);
-			create_info.pQueueCreateInfos = queue_info;
-			create_info.enabledExtensionCount = (uint32_t) device_extensions.Size;
-			create_info.ppEnabledExtensionNames = device_extensions.Data;
-			err = vkCreateDevice(g_PhysicalDevice, &create_info, g_Allocator, &g_Device);
-			check_vk_result(err);
-			vkGetDeviceQueue(g_Device, g_QueueFamily, 0, &g_Queue);
-		}
+		err = CreateLogicalDevice(err);
 
 		// Create Descriptor Pool
 		// The example only requires a single combined image sampler descriptor for the font image and only uses one descriptor set (for that)
 		// If you wish to load e.g. additional textures you may need to alter pools sizes.
-		{
-			VkDescriptorPoolSize pool_sizes[] =
-					{
-							{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
-					};
-			VkDescriptorPoolCreateInfo pool_info = {};
-			pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-			pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-			pool_info.maxSets = 1;
-			pool_info.poolSizeCount = (uint32_t) IM_ARRAYSIZE(pool_sizes);
-			pool_info.pPoolSizes = pool_sizes;
-			err = vkCreateDescriptorPool(g_Device, &pool_info, g_Allocator, &g_DescriptorPool);
-			check_vk_result(err);
-		}
+		CreateDescriptorPool(err);
+
+		return window;
 	}
 
-	void SetupVulkanWindow(ImGui_ImplVulkanH_Window *wd, const VkSurfaceKHR &surface, const int &width, const int &height) {
+	void
+	SetupVulkanWindow(ImGui_ImplVulkanH_Window *wd, const VkSurfaceKHR &surface, const int &width, const int &height) {
 		wd->Surface = surface;
 
 		// Check for WSI support
@@ -202,38 +242,5 @@ namespace gimi::vulkan {
 
 	void CleanupVulkanWindow() {
 		ImGui_ImplVulkanH_DestroyWindow(g_Instance, g_Device, &g_MainWindowData, g_Allocator);
-	}
-
-	void shutdown(VkResult &err, SDL_Window *window) {
-		err = vkDeviceWaitIdle(g_Device);
-		check_vk_result(err);
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplSDL2_Shutdown();
-		ImGui::DestroyContext();
-
-		CleanupVulkanWindow();
-		CleanupVulkan();
-
-		SDL_DestroyWindow(window);
-		SDL_Quit();
-	}
-
-	void setup_render(ImGui_ImplVulkanH_Window *wd, SDL_Window *window) {
-		ImGui_ImplSDL2_InitForVulkan(window);
-		ImGui_ImplVulkan_InitInfo init_info = {};
-		init_info.Instance = g_Instance;
-		init_info.PhysicalDevice = g_PhysicalDevice;
-		init_info.Device = g_Device;
-		init_info.QueueFamily = g_QueueFamily;
-		init_info.Queue = g_Queue;
-		init_info.PipelineCache = g_PipelineCache;
-		init_info.DescriptorPool = g_DescriptorPool;
-		init_info.Subpass = 0;
-		init_info.MinImageCount = g_MinImageCount;
-		init_info.ImageCount = wd->ImageCount;
-		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-		init_info.Allocator = g_Allocator;
-		init_info.CheckVkResultFn = _check_vk_result;
-		ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
 	}
 }

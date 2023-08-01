@@ -2,13 +2,6 @@
 #define SDL_MAIN_HANDLED
 
 #include <iostream>
-#include <tuple>
-#include <tuple>
-#include <SDL.h>
-#include <imgui_impl_vulkan.h>
-#include <imgui_impl_sdl2.h>
-#include <SDL_vulkan.h>
-#include <vulkan/vulkan.h>
 #include <cstdio>
 #include <cstdlib>
 #include "vulkan.h"
@@ -20,6 +13,10 @@ static bool g_SwapChainRebuild = false;
 static void FrameRender(ImGui_ImplVulkanH_Window *wd, ImDrawData *draw_data);
 
 static void FramePresent(ImGui_ImplVulkanH_Window *wd);
+
+void shutdown(VkResult &err, SDL_Window *window);
+
+void setup_render(ImGui_ImplVulkanH_Window *wd, SDL_Window *window);
 
 void load_fonts(ImGui_ImplVulkanH_Window *wd, VkResult &err);
 
@@ -53,16 +50,8 @@ std::tuple<int, ImGui_ImplVulkanH_Window *, SDL_Window *, ImGuiIO &, VkResult &>
 #endif
 
 	// Create window with Vulkan graphics context
-	auto window_flags = (SDL_WindowFlags) (SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-	SDL_Window *window = SDL_CreateWindow("Dear ImGui SDL2+Vulkan example", SDL_WINDOWPOS_CENTERED,
-										  SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
 
-	ImVector<const char *> extensions;
-	uint32_t extensions_count = 0;
-	SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, nullptr);
-	extensions.resize(extensions_count);
-	SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, extensions.Data);
-	gimi::vulkan::SetupVulkan(extensions);
+	auto* window = gimi::vulkan::SetupVulkan();
 
 	// Create Window Surface
 	VkSurfaceKHR surface;
@@ -89,12 +78,45 @@ std::tuple<int, ImGui_ImplVulkanH_Window *, SDL_Window *, ImGuiIO &, VkResult &>
 	}
 
 	// Setup Platform/Renderer backends
-	gimi::vulkan::setup_render(wd, window);
+	setup_render(wd, window);
 
 	// Upload Fonts
 	load_fonts(wd, err);
 
 	return {0, wd, window, io, err};
+}
+
+void shutdown(VkResult &err, SDL_Window *window) {
+	err = vkDeviceWaitIdle(gimi::vulkan::g_Device);
+	gimi::vulkan::check_vk_result(err);
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
+	gimi::vulkan::CleanupVulkanWindow();
+	gimi::vulkan::CleanupVulkan();
+
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+}
+
+void setup_render(ImGui_ImplVulkanH_Window *wd, SDL_Window *window) {
+	ImGui_ImplSDL2_InitForVulkan(window);
+	ImGui_ImplVulkan_InitInfo init_info = {};
+	init_info.Instance = gimi::vulkan::g_Instance;
+	init_info.PhysicalDevice = gimi::vulkan::g_PhysicalDevice;
+	init_info.Device = gimi::vulkan::g_Device;
+	init_info.QueueFamily = gimi::vulkan::g_QueueFamily;
+	init_info.Queue = gimi::vulkan::g_Queue;
+	init_info.PipelineCache = gimi::vulkan::g_PipelineCache;
+	init_info.DescriptorPool = gimi::vulkan::g_DescriptorPool;
+	init_info.Subpass = 0;
+	init_info.MinImageCount = gimi::vulkan::g_MinImageCount;
+	init_info.ImageCount = wd->ImageCount;
+	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.Allocator = gimi::vulkan::g_Allocator;
+	init_info.CheckVkResultFn = gimi::vulkan::_check_vk_result;
+	ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
 }
 
 void load_fonts(ImGui_ImplVulkanH_Window *wd, VkResult &err) {
