@@ -14,7 +14,7 @@ namespace gimi::vulkan {
 	uint32_t g_MinImageCount = 2;
 	bool g_SwapChainRebuild = false;
 
-	void NewFrame(bool& done, SDL_Window *window) {
+	void NewFrame(bool &done, SDL_Window *window) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			ImGui_ImplSDL2_ProcessEvent(&event);
@@ -247,7 +247,7 @@ namespace gimi::vulkan {
 
 		VkDeviceCreateInfo create_info = {};
 
-		auto* p_create_info = &create_info;
+		auto *p_create_info = &create_info;
 		p_create_info->sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		p_create_info->queueCreateInfoCount = sizeof(queue_info) / sizeof(queue_info[0]);
 		p_create_info->pQueueCreateInfos = queue_info;

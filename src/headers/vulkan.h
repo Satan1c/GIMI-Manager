@@ -21,7 +21,7 @@ namespace gimi::vulkan {
 	extern uint32_t g_MinImageCount;
 	extern bool g_SwapChainRebuild;
 
-	void NewFrame(bool& done, SDL_Window *window);
+	void NewFrame(bool &done, SDL_Window *window);
 
 	void FrameRender(ImGui_ImplVulkanH_Window *wd, ImDrawData *draw_data);
 

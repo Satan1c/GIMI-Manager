@@ -1,7 +1,7 @@
 #include "headers/another.h"
 
 namespace windows::another {
-	State* state = new State{false};
+	State *state = new State{false};
 
 	void draw() {
 		if (!state->show_another_window) return;

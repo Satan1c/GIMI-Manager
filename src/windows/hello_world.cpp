@@ -3,10 +3,10 @@
 #include "headers/another.h"
 
 namespace windows::hello_world {
-	State* state = new State{
-		&windows::demo::state->show_demo_window,
-		&windows::another::state->show_another_window,
-		ImVec4(0.45f, 0.55f, 0.60f, 1.00f)};
+	State *state = new State{
+			&windows::demo::state->show_demo_window,
+			&windows::another::state->show_another_window,
+			ImVec4(0.45f, 0.55f, 0.60f, 1.00f)};
 
 	void draw(const float &frmerate) {
 		static float f = 0.0f;
@@ -20,7 +20,7 @@ namespace windows::hello_world {
 		ImGui::Checkbox("Another Window", state->show_another_window);
 
 		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-		ImGui::ColorEdit3("clear color", (float*)&state->clear_color); // Edit 3 floats representing a color
+		ImGui::ColorEdit3("clear color", (float *) &state->clear_color); // Edit 3 floats representing a color
 
 		if (ImGui::Button(
 				"Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)

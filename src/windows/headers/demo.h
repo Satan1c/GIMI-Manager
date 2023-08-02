@@ -1,4 +1,5 @@
 #pragma once
+
 #include <imgui.h>
 
 namespace windows::demo {
@@ -10,7 +11,7 @@ namespace windows::demo {
 		}
 	};
 
-	extern State* state;
+	extern State *state;
 
 	void draw();
 }

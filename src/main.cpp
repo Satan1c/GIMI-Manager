@@ -1,22 +1,26 @@
 #include "headers/main.h"
 
-using namespace gimi::vulkan;
-
 int main() {
-	auto [code, wd, window, io, err] = cfg();
+	//auto [code, wd, window, io, err] = cfg();
+	auto [code, io, wc, hwnd] = cfg();
 
 	if (code != 0) return code;
 
 	bool done = false;
-	windows::state = new windows::State(wd, window, &io, &err, &done);
+	//windows::state = new windows::State(wd, window, &io, &err, &done);
+	windows::state = new windows::State(&io, &done);
 	while (!done) {
-		NewFrame(done, window);
+		//gimi::vulkan::NewFrame(done, window);
+		gimi::dx11::NewFrame(done);
+
+		if (done)
+			break;
 
 		windows::Draw();
 
-		update_main_window(wd);
+		update_main_window();
 	}
 
-	shutdown(err, window);
+	shutdown(hwnd, wc);
 	return 0;
 }

@@ -1,11 +1,15 @@
 #pragma once
+#if SDL2_VULKAN
 #define SDL_MAIN_HANDLED
+#endif
 
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include "vulkan.h"
 #include "../windows/headers/windows.h"
+
+#if SDL2_VULKAN
+#include "vulkan.h"
 
 void update_main_window(ImGui_ImplVulkanH_Window * wd) {
 	// Rendering
@@ -172,3 +176,114 @@ void shutdown(VkResult &err, SDL_Window *window) {
 	SDL_Quit();
 }
 
+#endif
+
+#if WINDOWS_NATIVE
+
+#include "dx11.h"
+
+void update_main_window() {
+	// Rendering
+	ImGui::Render();
+	auto clear_color = windows::hello_world::state->clear_color;
+	const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w,
+											 clear_color.z * clear_color.w, clear_color.w};
+	gimi::dx11::g_pd3dDeviceContext->OMSetRenderTargets(1, &gimi::dx11::g_mainRenderTargetView, nullptr);
+	gimi::dx11::g_pd3dDeviceContext->ClearRenderTargetView(gimi::dx11::g_mainRenderTargetView, clear_color_with_alpha);
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
+
+	gimi::dx11::g_pSwapChain->Present(1, 0);
+}
+
+void setup_render(HWND &hwnd) {
+	ImGui_ImplWin32_Init(hwnd);
+	ImGui_ImplDX11_Init(gimi::dx11::g_pd3dDevice, gimi::dx11::g_pd3dDeviceContext);
+}
+
+void load_fonts() {
+	// Load Fonts
+	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+	// - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+	// - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
+	// - Read 'docs/FONTS.md' for more instructions and details.
+	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+	//io.Fonts->AddFontDefault();
+	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	//IM_ASSERT(font != nullptr);
+}
+
+std::tuple<int, ImGuiIO &, WNDCLASSEXW &, HWND &> cfg() {
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	(void) io;
+	io.ConfigFlags |=
+			ImGuiConfigFlags_NavEnableKeyboard
+			| ImGuiConfigFlags_NavEnableGamepad
+			| ImGuiConfigFlags_DockingEnable
+			| ImGuiConfigFlags_ViewportsEnable;
+
+	io.ConfigDockingTransparentPayload = true;
+	io.ConfigViewportsNoDecoration = true;
+	io.ConfigViewportsNoAutoMerge = false;
+	io.ConfigDockingAlwaysTabBar = true;
+
+	WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, gimi::dx11::WndProc, 0L, 0L,
+					  GetModuleHandle(nullptr), nullptr, nullptr,
+					  nullptr, nullptr, L"ImGui Example", nullptr};
+	RegisterClassExW(&wc);
+	HWND hwnd = CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX11 Example", WS_OVERLAPPEDWINDOW, 100, 100, 1280,
+							  800, nullptr, nullptr, wc.hInstance, nullptr);
+
+	// Initialize Direct3D
+	if (!gimi::dx11::CreateDeviceD3D(hwnd)) {
+		gimi::dx11::CleanupDeviceD3D();
+		::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+		return {1, io, wc, hwnd};
+	}
+
+	// Show the window
+	ShowWindow(hwnd, SW_SHOWDEFAULT);
+	UpdateWindow(hwnd);
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+
+	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle &style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+		style.WindowRounding = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
+
+	// Setup Platform/Renderer backends
+	setup_render(hwnd);
+
+	// Upload Fonts
+	load_fonts();
+
+	return {0, io, wc, hwnd};
+}
+
+void shutdown(HWND &hwnd, WNDCLASSEXW &wc) {
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
+	gimi::dx11::CleanupDeviceD3D();
+	DestroyWindow(hwnd);
+	UnregisterClassW(wc.lpszClassName, wc.hInstance);
+}
+
+#endif
