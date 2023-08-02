@@ -7,18 +7,90 @@
 #include "vulkan.h"
 #include "../windows/headers/windows.h"
 
+void update_main_window(ImGui_ImplVulkanH_Window * wd) {
+	// Rendering
+	ImGui::Render();
+	ImDrawData *main_draw_data = ImGui::GetDrawData();
+	const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f || main_draw_data->DisplaySize.y <= 0.0f);
+	auto clear_color = windows::hello_world::state->clear_color;
+	wd->ClearValue.color.float32[0] = clear_color.x * clear_color.w;
+	wd->ClearValue.color.float32[1] = clear_color.y * clear_color.w;
+	wd->ClearValue.color.float32[2] = clear_color.z * clear_color.w;
+	wd->ClearValue.color.float32[3] = clear_color.w;
+	if (!main_is_minimized)
+		gimi::vulkan::FrameRender(wd, main_draw_data);
 
-static bool g_SwapChainRebuild = false;
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
 
-static void FrameRender(ImGui_ImplVulkanH_Window *wd, ImDrawData *draw_data);
+	// Present Main Platform Window
+	if (!main_is_minimized)
+		gimi::vulkan::FramePresent(wd);
+}
 
-static void FramePresent(ImGui_ImplVulkanH_Window *wd);
+void setup_render(ImGui_ImplVulkanH_Window *wd, SDL_Window *window) {
+	ImGui_ImplSDL2_InitForVulkan(window);
+	ImGui_ImplVulkan_InitInfo init_info = {};
+	init_info.Instance = gimi::vulkan::g_Instance;
+	init_info.PhysicalDevice = gimi::vulkan::g_PhysicalDevice;
+	init_info.Device = gimi::vulkan::g_Device;
+	init_info.QueueFamily = gimi::vulkan::g_QueueFamily;
+	init_info.Queue = gimi::vulkan::g_Queue;
+	init_info.PipelineCache = gimi::vulkan::g_PipelineCache;
+	init_info.DescriptorPool = gimi::vulkan::g_DescriptorPool;
+	init_info.Subpass = 0;
+	init_info.MinImageCount = gimi::vulkan::g_MinImageCount;
+	init_info.ImageCount = wd->ImageCount;
+	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.Allocator = gimi::vulkan::g_Allocator;
+	init_info.CheckVkResultFn = gimi::vulkan::_check_vk_result;
+	ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
+}
 
-void shutdown(VkResult &err, SDL_Window *window);
+void load_fonts(ImGui_ImplVulkanH_Window *wd, VkResult &err) {
+	// Load Fonts
+	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+	// - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+	// - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
+	// - Read 'docs/FONTS.md' for more instructions and details.
+	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+	//io.Fonts->AddFontDefault();
+	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	//IM_ASSERT(font != nullptr);
 
-void setup_render(ImGui_ImplVulkanH_Window *wd, SDL_Window *window);
+	// Use any command queue
+	VkCommandPool command_pool = wd->Frames[wd->FrameIndex].CommandPool;
+	VkCommandBuffer command_buffer = wd->Frames[wd->FrameIndex].CommandBuffer;
 
-void load_fonts(ImGui_ImplVulkanH_Window *wd, VkResult &err);
+	err = vkResetCommandPool(gimi::vulkan::g_Device, command_pool, 0);
+	gimi::vulkan::check_vk_result(err);
+	VkCommandBufferBeginInfo begin_info = {};
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	err = vkBeginCommandBuffer(command_buffer, &begin_info);
+	gimi::vulkan::check_vk_result(err);
+
+	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+
+	VkSubmitInfo end_info = {};
+	end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	end_info.commandBufferCount = 1;
+	end_info.pCommandBuffers = &command_buffer;
+	err = vkEndCommandBuffer(command_buffer);
+	gimi::vulkan::check_vk_result(err);
+	err = vkQueueSubmit(gimi::vulkan::g_Queue, 1, &end_info, VK_NULL_HANDLE);
+	gimi::vulkan::check_vk_result(err);
+
+	err = vkDeviceWaitIdle(gimi::vulkan::g_Device);
+	gimi::vulkan::check_vk_result(err);
+	ImGui_ImplVulkan_DestroyFontUploadObjects();
+}
 
 std::tuple<int, ImGui_ImplVulkanH_Window *, SDL_Window *, ImGuiIO &, VkResult &> cfg() {
 	VkResult err;
@@ -100,66 +172,3 @@ void shutdown(VkResult &err, SDL_Window *window) {
 	SDL_Quit();
 }
 
-void setup_render(ImGui_ImplVulkanH_Window *wd, SDL_Window *window) {
-	ImGui_ImplSDL2_InitForVulkan(window);
-	ImGui_ImplVulkan_InitInfo init_info = {};
-	init_info.Instance = gimi::vulkan::g_Instance;
-	init_info.PhysicalDevice = gimi::vulkan::g_PhysicalDevice;
-	init_info.Device = gimi::vulkan::g_Device;
-	init_info.QueueFamily = gimi::vulkan::g_QueueFamily;
-	init_info.Queue = gimi::vulkan::g_Queue;
-	init_info.PipelineCache = gimi::vulkan::g_PipelineCache;
-	init_info.DescriptorPool = gimi::vulkan::g_DescriptorPool;
-	init_info.Subpass = 0;
-	init_info.MinImageCount = gimi::vulkan::g_MinImageCount;
-	init_info.ImageCount = wd->ImageCount;
-	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-	init_info.Allocator = gimi::vulkan::g_Allocator;
-	init_info.CheckVkResultFn = gimi::vulkan::_check_vk_result;
-	ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
-}
-
-void load_fonts(ImGui_ImplVulkanH_Window *wd, VkResult &err) {
-	// Load Fonts
-	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-	// - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-	// - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
-	// - Read 'docs/FONTS.md' for more instructions and details.
-	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	//io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-	//IM_ASSERT(font != nullptr);
-
-	// Use any command queue
-	VkCommandPool command_pool = wd->Frames[wd->FrameIndex].CommandPool;
-	VkCommandBuffer command_buffer = wd->Frames[wd->FrameIndex].CommandBuffer;
-
-	err = vkResetCommandPool(gimi::vulkan::g_Device, command_pool, 0);
-	gimi::vulkan::check_vk_result(err);
-	VkCommandBufferBeginInfo begin_info = {};
-	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	err = vkBeginCommandBuffer(command_buffer, &begin_info);
-	gimi::vulkan::check_vk_result(err);
-
-	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
-
-	VkSubmitInfo end_info = {};
-	end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	end_info.commandBufferCount = 1;
-	end_info.pCommandBuffers = &command_buffer;
-	err = vkEndCommandBuffer(command_buffer);
-	gimi::vulkan::check_vk_result(err);
-	err = vkQueueSubmit(gimi::vulkan::g_Queue, 1, &end_info, VK_NULL_HANDLE);
-	gimi::vulkan::check_vk_result(err);
-
-	err = vkDeviceWaitIdle(gimi::vulkan::g_Device);
-	gimi::vulkan::check_vk_result(err);
-	ImGui_ImplVulkan_DestroyFontUploadObjects();
-}

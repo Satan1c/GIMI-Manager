@@ -19,8 +19,13 @@ namespace gimi::vulkan {
 
 	extern ImGui_ImplVulkanH_Window g_MainWindowData;
 	extern uint32_t g_MinImageCount;
+	extern bool g_SwapChainRebuild;
 
-	void NewFrame();
+	void NewFrame(bool& done, SDL_Window *window);
+
+	void FrameRender(ImGui_ImplVulkanH_Window *wd, ImDrawData *draw_data);
+
+	void FramePresent(ImGui_ImplVulkanH_Window *wd);
 
 	void _check_vk_result(VkResult err);
 
