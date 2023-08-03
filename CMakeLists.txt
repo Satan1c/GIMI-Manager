@@ -22,15 +22,16 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 set(WINDOWS_NATIVE true)
 
 target_link_directories(${PROJECT_NAME} PRIVATE
-		${VCPKG_PATH}/installed/${OS_NAME}/lib
-		${VCPKG_PATH}/installed/${OS_NAME}/lib/manual-link
+		${VCPKG_PATH}/installed/${OS_NAME}-static/lib
+		${VCPKG_PATH}/installed/${OS_NAME}-static/lib/manual-link
 )
 target_include_directories(${PROJECT_NAME} PRIVATE
-		${VCPKG_PATH}/installed/${OS_NAME}/lib
-		${VCPKG_PATH}/installed/${OS_NAME}/lib/manual-link
-		${VCPKG_PATH}/installed/${OS_NAME}/include
+		${VCPKG_PATH}/installed/${OS_NAME}-static/lib
+		${VCPKG_PATH}/installed/${OS_NAME}-static/lib/manual-link
+		${VCPKG_PATH}/installed/${OS_NAME}-static/include
 )
 
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 
 if (WINDOWS_NATIVE)
@@ -47,7 +48,6 @@ else ()
 	find_package(SDL2 CONFIG REQUIRED)
 	target_link_libraries(${PROJECT_NAME} PRIVATE
 			imgui::imgui
-			SDL2::SDL2
 			SDL2::SDL2main
 	)
 endif ()
