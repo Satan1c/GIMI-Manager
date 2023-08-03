@@ -43,11 +43,14 @@ if (WINDOWS_NATIVE)
 			comdlg32.lib advapi32.lib shell32.lib
 			ole32.lib oleaut32.lib
 			Microsoft::DirectXTK
+			unofficial::sqlite3::sqlite3
 	)
 else ()
 	find_package(SDL2 CONFIG REQUIRED)
 	target_link_libraries(${PROJECT_NAME} PRIVATE
 			imgui::imgui
 			SDL2::SDL2main
+			SDL2::SDL2-static
+			unofficial::sqlite3::sqlite3
 	)
 endif ()
