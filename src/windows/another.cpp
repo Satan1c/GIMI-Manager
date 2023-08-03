@@ -1,4 +1,5 @@
-#include "headers/another.h"
+#include "headers/another.hpp"
+#include <imgui.h>
 
 namespace windows::another {
 	State *state = new State{false};

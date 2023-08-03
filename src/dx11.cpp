@@ -1,4 +1,4 @@
-#include "headers/dx11.h"
+#include "headers/dx11.hpp"
 
 #ifndef WM_DPICHANGED
 #define WM_DPICHANGED 0x02E0 // From Windows SDK 8.1+ headers

@@ -1,6 +1,6 @@
-#include "headers/hello_world.h"
-#include "headers/demo.h"
-#include "headers/another.h"
+#include "headers/hello_world.hpp"
+#include "headers/demo.hpp"
+#include "headers/another.hpp"
 
 namespace windows::hello_world {
 	State *state = new State{
@@ -8,10 +8,11 @@ namespace windows::hello_world {
 			&windows::another::state->show_another_window,
 			ImVec4(0.45f, 0.55f, 0.60f, 1.00f)};
 
-	void draw(const float &frmerate) {
+	void draw() {
 		static float f = 0.0f;
 		static int counter = 0;
 
+		const float &frmerate = ImGui::GetIO().Framerate;
 		ImGui::Begin(
 				"Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 

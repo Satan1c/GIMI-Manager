@@ -17,5 +17,5 @@ namespace windows::hello_world {
 
 	extern State *state;
 
-	void draw(const float &frmerate);
+	void draw();
 }

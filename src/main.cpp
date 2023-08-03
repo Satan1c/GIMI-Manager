@@ -1,6 +1,6 @@
 #pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
 
-#include "headers/main.h"
+#include "headers/main.hpp"
 
 int main() {
 	//auto [code, wd, window, io, err] = cfg();
@@ -10,7 +10,7 @@ int main() {
 
 	bool done = false;
 	//windows::state = new windows::State(wd, window, &io, &err, &done);
-	windows::state = new windows::State(&io, &done);
+	windows::state = new windows::State(&done);
 	while (!done) {
 		//gimi::vulkan::NewFrame(done, window);
 		gimi::dx11::NewFrame(done);

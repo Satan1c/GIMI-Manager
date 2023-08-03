@@ -1,7 +1,5 @@
 #pragma once
 
-#include <imgui.h>
-
 namespace windows::another {
 	struct State {
 		bool show_another_window;

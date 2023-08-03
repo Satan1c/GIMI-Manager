@@ -1,4 +1,5 @@
-#include "headers/demo.h"
+#include "headers/demo.hpp"
+#include <imgui.h>
 
 namespace windows::demo {
 	State *state = new State{false};

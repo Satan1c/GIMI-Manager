@@ -18,9 +18,9 @@ set(CompilerFlags
 		CMAKE_C_FLAGS_DEBUG
 		CMAKE_C_FLAGS_RELEASE
 		)
-foreach(CompilerFlag ${CompilerFlags})
+foreach (CompilerFlag ${CompilerFlags})
 	string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-endforeach()
+endforeach ()
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(CMAKE_TOOLCHAIN_FILE "${VCPKG_PATH}/scripts/buildsystems/vcpkg.cmake")
@@ -32,18 +32,18 @@ add_executable(${PROJECT_NAME} ${SRC})
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 		WINDOWS_NATIVE
 		# SDL2_VULKAN
-)
+		)
 set(WINDOWS_NATIVE true)
 
 target_link_directories(${PROJECT_NAME} PRIVATE
 		${VCPKG_PATH}/installed/${OS_NAME}-static/lib
 		${VCPKG_PATH}/installed/${OS_NAME}-static/lib/manual-link
-)
+		)
 target_include_directories(${PROJECT_NAME} PRIVATE
 		${VCPKG_PATH}/installed/${OS_NAME}-static/lib
 		${VCPKG_PATH}/installed/${OS_NAME}-static/lib/manual-link
 		${VCPKG_PATH}/installed/${OS_NAME}-static/include
-)
+		)
 
 find_package(7zip CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
@@ -60,7 +60,7 @@ if (WINDOWS_NATIVE)
 			Microsoft::DirectXTK
 			unofficial::sqlite3::sqlite3
 			7zip::7zip
-	)
+			)
 else ()
 	find_package(SDL2 CONFIG REQUIRED)
 	target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -69,5 +69,5 @@ else ()
 			SDL2::SDL2-static
 			unofficial::sqlite3::sqlite3
 			7zip::7zip
-	)
+			)
 endif ()

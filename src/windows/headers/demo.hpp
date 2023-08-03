@@ -1,7 +1,5 @@
 #pragma once
 
-#include <imgui.h>
-
 namespace windows::demo {
 	struct State {
 		bool show_demo_window;

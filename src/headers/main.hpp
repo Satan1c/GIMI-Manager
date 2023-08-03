@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include "../windows/headers/windows.h"
+#include "../windows/headers/windows.hpp"
 
 #if SDL2_VULKAN
 #include "vulkan.h"
@@ -180,7 +180,7 @@ void shutdown(VkResult &err, SDL_Window *window) {
 
 #if WINDOWS_NATIVE
 
-#include "dx11.h"
+#include "dx11.hpp"
 
 void update_main_window() {
 	// Rendering
