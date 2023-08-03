@@ -240,10 +240,11 @@ std::tuple<int, ImGuiIO &, WNDCLASSEXW &, HWND &> cfg() {
 
 	WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, gimi::dx11::WndProc, 0L, 0L,
 					  GetModuleHandle(nullptr), nullptr, nullptr,
-					  nullptr, nullptr, L"ImGui Example", nullptr};
+					  nullptr, nullptr, L"GIMI Manager", nullptr};
 	RegisterClassExW(&wc);
-	HWND hwnd = CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX11 Example", WS_OVERLAPPEDWINDOW, 100, 100, 1280,
-							  800, nullptr, nullptr, wc.hInstance, nullptr);
+	HWND hwnd = CreateWindowW(wc.lpszClassName, L"GIMI Manager", WS_OVERLAPPEDWINDOW, 100, 100,
+							  480, 270,
+							  nullptr, nullptr, wc.hInstance, nullptr);
 
 	// Initialize Direct3D
 	if (!gimi::dx11::CreateDeviceD3D(hwnd)) {
