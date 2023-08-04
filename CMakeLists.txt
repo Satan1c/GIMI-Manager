@@ -45,7 +45,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 		${VCPKG_PATH}/installed/${OS_NAME}-static/include
 		)
 
-find_package(7zip CONFIG REQUIRED)
+find_package(LibArchive REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 
@@ -59,7 +59,7 @@ if (WINDOWS_NATIVE)
 			ole32.lib oleaut32.lib
 			Microsoft::DirectXTK
 			unofficial::sqlite3::sqlite3
-			7zip::7zip
+			LibArchive::LibArchive
 			)
 else ()
 	find_package(SDL2 CONFIG REQUIRED)
@@ -68,6 +68,6 @@ else ()
 			SDL2::SDL2main
 			SDL2::SDL2-static
 			unofficial::sqlite3::sqlite3
-			7zip::7zip
+			LibArchive::LibArchive
 			)
 endif ()
