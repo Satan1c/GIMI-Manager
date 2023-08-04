@@ -21,6 +21,8 @@ int main() {
 		if (done)
 			break;
 
+		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
 		windows::Draw();
 
 		update_main_window();
