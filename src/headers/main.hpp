@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "../windows/headers/windows.hpp"
+#include "database/headers/ini_manager.hpp"
 
 #if SDL2_VULKAN
 #include "vulkan.h"
