@@ -1,8 +1,7 @@
 #pragma once
 
 namespace windows::zips {
-	extern bool state;
-	extern std::map<std::string, std::string> zips_map;
+	void draw();
 
-	void draw_list();
+	void reload_list();
 }
