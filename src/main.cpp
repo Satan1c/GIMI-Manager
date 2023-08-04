@@ -10,6 +10,9 @@ int main() {
 
 	bool done = false;
 	//windows::state = new windows::State(wd, window, &io, &err, &done);
+	database::ini_manager::init();
+	windows::zips::reload_list();
+	//windows::mods::reload_list();
 	windows::state = new windows::State(&done);
 	while (!done) {
 		//gimi::vulkan::NewFrame(done, window);
