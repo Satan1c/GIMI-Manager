@@ -20,8 +20,8 @@ namespace windows {
 	State *state;
 
 	void Draw() {
-		windows::zips::draw_list();
-		windows::move_test::draw();
+		windows::mods::draw();
+		windows::zips::draw();
 		windows::demo::draw();
 		windows::another::draw();
 
