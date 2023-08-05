@@ -1,22 +1,17 @@
 #pragma once
 
 #include <map>
+#include <imgui.h>
 #include <filesystem>
+#include "../database/headers/ini_manager.hpp"
 
 namespace gimi::utils {
-	void load_files(const std::filesystem::path &from, std::map<std::string, std::string> &to) {
-		to.clear();
-		for (const auto &entry: std::filesystem::recursive_directory_iterator(from)) {
-			if (!entry.is_regular_file()) continue;
+	void draw_dirs(
+			const CSimpleIniA &from_ini, const CSimpleIniA::TNamesDepend &data,
+			const std::string &base, const std::string &category,
+			std::string &selected, std::string &selected_path);
 
-			try {
-				const auto &path = entry.path();
-				to[std::string(path.filename().string())] = std::string(path.string());
-			} catch (const std::filesystem::filesystem_error &) {
-			} catch (const std::exception &) {
-			}
-		}
-	}
+	void load_files(const std::filesystem::path &from, std::map<std::string, std::string> &to);
 
 	template<typename K, typename V>
 	V GetWithDef(const std::map<K, V> &m, const K &key, const V &defval) {

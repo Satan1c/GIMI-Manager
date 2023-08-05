@@ -2,9 +2,14 @@
 
 #include <string>
 #include <filesystem>
+#include <SimpleIni.h>
 
 namespace database::ini_manager {
-	void init();
+	extern CSimpleIniA ini;
+	extern CSimpleIniA ini_cats;
+	extern CSimpleIniA ini_mods;
+
+	int_least8_t init();
 
 	void save();
 
@@ -12,9 +17,9 @@ namespace database::ini_manager {
 
 	std::string main_folder();
 
-	std::filesystem::path zips_folder();
+	std::string load_zips_folder(CSimpleIniA::TNamesDepend &to);
 
-	std::filesystem::path mods_folder();
+	std::string load_mods_folder(CSimpleIniA::TNamesDepend &to);
 
 	std::filesystem::path downloads_folder();
 }

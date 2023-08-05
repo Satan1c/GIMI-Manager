@@ -1,6 +1,6 @@
 #pragma once
 
-//#include "modals.hpp"
+#include "modals.hpp"
 #include "mods_zip_list.hpp"
 #include "mods_list.hpp"
 #include "demo.hpp"
