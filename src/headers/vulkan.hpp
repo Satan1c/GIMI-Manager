@@ -1,4 +1,5 @@
 #pragma once
+#if SDL2_VULKAN
 
 #include <tuple>
 #include <imgui_impl_vulkan.h>
@@ -44,3 +45,5 @@ namespace gimi::vulkan {
 
 	void CleanupVulkanWindow();
 }
+
+#endif

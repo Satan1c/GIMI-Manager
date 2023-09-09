@@ -1,4 +1,5 @@
 #include "headers/vulkan.hpp"
+#if SDL2_VULKAN
 
 namespace gimi::vulkan {
 	VkAllocationCallbacks *g_Allocator = nullptr;
@@ -355,3 +356,5 @@ namespace gimi::vulkan {
 		ImGui_ImplVulkanH_DestroyWindow(g_Instance, g_Device, &g_MainWindowData, g_Allocator);
 	}
 }
+
+#endif
