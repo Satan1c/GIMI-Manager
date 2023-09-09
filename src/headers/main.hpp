@@ -10,7 +10,7 @@
 #include "database/headers/ini_manager.hpp"
 
 #if SDL2_VULKAN
-#include "vulkan.h"
+#include "vulkan.hpp"
 
 void update_main_window(ImGui_ImplVulkanH_Window * wd) {
 	// Rendering

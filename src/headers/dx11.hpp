@@ -1,4 +1,5 @@
 #pragma once
+#if WINDOWS_NATIVE
 
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
@@ -24,3 +25,5 @@ namespace gimi::dx11 {
 
 	LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 }
+
+#endif

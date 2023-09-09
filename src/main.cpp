@@ -3,8 +3,11 @@
 #include "headers/main.hpp"
 
 int main() {
-	//auto [code, wd, window, io, err] = cfg();
+#if SDL2_VULKAN
+	auto [code, wd, window, io, err] = cfg();
+#elif WINDOWS_NATIVE
 	auto [code, io, wc, hwnd] = cfg();
+#endif
 
 	if (code != 0) return code;
 
@@ -15,19 +18,30 @@ int main() {
 	//windows::mods::reload_list();
 	windows::state = new windows::State(&done);
 	while (!done) {
-		//gimi::vulkan::NewFrame(done, window);
+#if SDL2_VULKAN
+		gimi::vulkan::NewFrame(done, window);
+#elif WINDOWS_NATIVE
 		gimi::dx11::NewFrame(done);
-
+#endif
 		if (done)
 			break;
 
 		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
 		windows::Draw();
-
+#if SDL2_VULKAN
+		update_main_window(wd);
+#elif WINDOWS_NATIVE
 		update_main_window();
+#endif
+
 	}
 
+#if SDL2_VULKAN
+	shutdown(err, window);
+#elif WINDOWS_NATIVE
 	shutdown(hwnd, wc);
+#endif
+
 	return 0;
 }

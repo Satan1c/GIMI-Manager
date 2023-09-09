@@ -1,3 +1,4 @@
+#if WINDOWS_NATIVE
 #include "headers/dx11.hpp"
 
 #ifndef WM_DPICHANGED
@@ -136,3 +137,5 @@ namespace gimi::dx11 {
 		return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 	}
 }
+
+#endif
